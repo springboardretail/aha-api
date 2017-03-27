@@ -5,12 +5,16 @@ module AhaApi
       @response = response
       super(build_error_message)
     end
-    
+
     def response_body
       @response_body ||=
         if (body = @response[:body]) && !body.empty?
           if body.is_a?(String)
-            MultiJson.load(body, :symbolize_keys => true)
+            begin
+              MultiJson.load(body, :symbolize_keys => true)
+            rescue MultiJson::ParseError
+              { error: body }
+            end
           else
             body
           end
@@ -19,7 +23,7 @@ module AhaApi
         end
     end
 
-    
+
   private
 
     def build_error_message
@@ -33,7 +37,7 @@ module AhaApi
       errors = if response_body && response_body[:errors]
         ": #{response_body[:errors].map{|e| e[:message]}.join(', ')}"
       end
-            
+
       "#{@response[:method].to_s.upcase} #{@response[:url].to_s}: #{@response[:status]}#{message}#{errors}"
     end
   end
